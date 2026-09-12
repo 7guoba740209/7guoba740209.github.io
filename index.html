@@ -31,12 +31,22 @@
   <div class="sub">力学「两级正交分解」范式演示：氦气球题 + 耙索题，两题共用同一套分解结构。<br>
     纯 Canvas&nbsp;2D 手写三维管线，无需插件，手机/电脑浏览器均可直接播放。</div>
 
-  <a class="card" href="balloon-decomp.html">
-    <div class="t">绳拉力 T 的两级正交分解<span class="badge">最新版</span></div>
+  <a class="card" href="balloon-decomp2.html">
+    <div class="t">绳拉力 T 的两级正交分解<span class="badge">新版推荐</span></div>
     <div class="d">
-      只画分解，不画其它力。<br>
+      新增底部两个 <b>2D 正视小图</b> + 右侧「<b>分解层级</b>」逐级展开按钮。<br>
       ① 级：T = T⊥（指向另一球的水平力）+ T∥（重力·阻力平面内斜向下的力）<br>
-      ② 级：T∥ = Tx（指向运动方向的水平力）+ Tz（竖直向下的力）
+      ② 级：T∥ = Tx（指向运动方向的水平力）+ Tz（竖直向下的力）<br>
+      两图把每一级画成真正矩形 / 直角三角形，几何关系一目了然。
+    </div>
+  </a>
+
+  <a class="card" href="rake-decomp.html">
+    <div class="t">耙索拉力 F 的两级正交分解<span class="badge">新版推荐</span></div>
+    <div class="d">
+      2025·广州质检「两绳拉耙」情境：等边三角形 AO₁B、绳索面倾角 30°、两绳拉力均 F。<br>
+      ① 级：F = F∥（倾斜绳索面内）+ F⊥（指向另一耙索）<br>
+      ② 级：F∥ = Fx（向前）+ Fz（向上）；两绳总前向 = 3F/2（摩擦，选 C），总合力 F√3（选 B）。
     </div>
   </a>
 
@@ -48,21 +58,21 @@
     </div>
   </a>
 
-  <a class="card" href="rake-decomp.html">
-    <div class="t">耙索拉力 F 的两级正交分解（仿气球法）<span class="badge">最新版</span></div>
+  <a class="card" href="balloon-decomp.html">
+    <div class="t">绳拉力 T 的两级正交分解<span class="badge">旧版</span></div>
     <div class="d">
-      2025·广州质检「两绳拉耙」情境：等边三角形 AO₁B、绳索面倾角 30°、两绳拉力均 F。<br>
-      ① 级：F = F∥（倾斜绳索面内）+ F⊥（指向另一耙索）<br>
-      ② 级：F∥ = Fx（向前）+ Fz（向上）；两绳总前向 = 3F/2（摩擦，选 C），总合力 F√3（选 B）。
+      仅有 3D 场景分解，无底部 2D 正视小图与逐级展开按钮。<br>
+      保留旧入口，建议用上方新版获得更直观的两级分解演示。
     </div>
   </a>
 
   <div class="tips">
     <b>操作说明</b><br>
     · <b>拖动</b>旋转视角，<b>滚轮</b>缩放<br>
-    · 右侧面板可调节速度 <code>v</code>、箭头长度、切换视角预设<br>
-    · 点「扫描 v」可自动演示速度由小到大时各分解量的变化<br>
-    · 建议先看「侧视·看θ」：v 增大时绳被拉平，θ 明显减小
+    · 右侧面板可调节速度 / 绳索倾角、箭头长度、切换视角预设<br>
+    · 点「扫描 v / 扫描 φ」可自动演示参数变化时各分解量的变化<br>
+    · 新版有「分解层级」按钮：先显示母力 → +第一级 → +第二级，避免两级箭头挤在一起<br>
+    · 底部 2D 小图用真正矩形 / 直角三角形展示每一级分解，不受 3D 透视压斜
   </div>
 </div>
 </body>
