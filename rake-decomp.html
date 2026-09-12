@@ -10,7 +10,7 @@
   #cvWrap{flex:1;position:relative;background:#eef2f7;}
   canvas{display:block;width:100%;height:100%;cursor:grab;}
   canvas:active{cursor:grabbing;}
-  #tip{position:absolute;left:12px;bottom:10px;font-size:11.5px;color:#7b8798;}
+  #tip{position:absolute;left:12px;top:8px;font-size:11.5px;color:#7b8798;}
   #side{width:320px;background:#fff;border-left:1px solid #d7e0ec;padding:14px 16px;overflow:auto;box-shadow:-2px 0 10px rgba(20,40,70,.06);}
   h1{font-size:15px;margin:0 0 3px;color:#15233a;}
   .sub{font-size:12px;color:#6b7a90;margin-bottom:10px;line-height:1.6;}
@@ -46,7 +46,8 @@
       ① <b>F</b> = <b>F∥</b> + <b>F⊥</b><br>
       　F∥：在<b>倾斜绳索平面</b>内、指向 O₁（斜向上前）的力；F⊥：垂直该平面、指向另一耙索的<b>水平</b>力<br>
       ② <b>F∥</b> = <b>Fx</b> + <b>Fz</b><br>
-      　Fx：指向<b>运动方向</b>的水平力；Fz：<b>竖直向上</b>的力
+      　Fx：指向<b>运动方向</b>的水平力；Fz：<b>竖直向上</b>的力<br>
+      <span style="color:#0a6cff">画面底部两个 2D 正视小图，把每一级分解画成真正的平行四边形 / 直角三角形；用「分解层级」逐级展开，避免两级挤在一起。</span>
     </div>
 
     <div class="row">
@@ -74,9 +75,16 @@
 
     <hr>
     <label class="chk"><input type="checkbox" id="cPlane" checked> 半透明倾斜平面（绳索 AO₁B 所在面）</label>
-    <label class="chk"><input type="checkbox" id="cL1" checked> ① 级：F = F∥ + F⊥</label>
-    <label class="chk"><input type="checkbox" id="cL2" checked> ② 级：F∥ = Fx + Fz</label>
     <label class="chk"><input type="checkbox" id="cGrid" checked> 显示地面网格</label>
+
+    <div class="row">
+      <label>分解层级（逐级展开，避免两级挤在一起）</label>
+      <div class="btns">
+        <button class="btn" id="bS0" style="flex:1 1 31%">仅合力 F</button>
+        <button class="btn" id="bS1" style="flex:1 1 31%">+ 第一级</button>
+        <button class="btn on" id="bS2" style="flex:1 1 31%">+ 第二级</button>
+      </div>
+    </div>
 
     <hr>
     <div class="lg"><span class="sw" style="background:#5b2c8a"></span> F　耙索拉力（合力①）</div>
@@ -359,6 +367,90 @@ function drawDecomp(s, g, A){
   if(showL2){ label3(pFx, 'Fx', C.Fx, 9, 14); label3(pFz, 'Fz', C.Fz, 10, 0); }
 }
 
+/* --- 2D 正视分解面（底部小图，把每一级画成真正的平行四边形/直角三角形） --- */
+function arrow2D(x0,y0,x1,y1,color,w,hs){
+  ctx.save();
+  ctx.strokeStyle=color; ctx.lineWidth=w; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+  const dx=x1-x0, dy=y1-y0, L=Math.hypot(dx,dy);
+  if(L>3){ const ux=dx/L, uy=dy/L, nx=-uy, ny=ux, s=Math.min(hs||13,L*0.42);
+    ctx.fillStyle=color;
+    ctx.beginPath(); ctx.moveTo(x1,y1);
+    ctx.lineTo(x1-ux*s+nx*s*0.42, y1-uy*s+ny*s*0.42);
+    ctx.lineTo(x1-ux*s-nx*s*0.42, y1-uy*s-ny*s*0.42);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+}
+function roundRectPath(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+function panelBox(px,py,pw,ph,title){
+  ctx.save();
+  ctx.fillStyle='rgba(255,255,255,0.95)';
+  ctx.strokeStyle='#cdd8e6'; ctx.lineWidth=1.2;
+  roundRectPath(px,py,pw,ph,9); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='#15233a'; ctx.font='bold 12px "Microsoft YaHei",sans-serif';
+  ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText(title, px+10, py+7);
+  ctx.restore();
+}
+function drawInsets(s){
+  if(W<560) return;                       // 画布太窄则不画，避免拥挤
+  const pw=240, ph=160, gap=12;
+  const py = H - ph - 16;
+  const px1 = 16, px2 = px1+pw+gap;
+  const S = 168;
+
+  // 第一级：F = F∥ + F⊥ （倾斜面正视：u 水平、n 竖直）
+  panelBox(px1, py, pw, ph, '第一级 F=F∥+F⊥（倾斜面）');
+  const ox1=px1+22, oy1=py+ph-28;
+  if(stage>=1){
+    const aQ=s.mFpar*S, aP=s.mFper*S;
+    arrow2D(ox1,oy1, ox1+aQ, oy1, C.Fq, 4, 13);   // F∥ 水平（平面内）
+    arrow2D(ox1,oy1, ox1, oy1-aP, C.Fp, 4, 13);   // F⊥ 竖直（垂直平面）
+    ctx.save(); ctx.setLineDash([5,4]); ctx.strokeStyle='#8a97a8'; ctx.lineWidth=1.2;
+    ctx.beginPath(); ctx.moveTo(ox1+aQ,oy1); ctx.lineTo(ox1+aQ,oy1-aP); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ox1,oy1-aP); ctx.lineTo(ox1+aQ,oy1-aP); ctx.stroke();
+    ctx.restore();
+    arrow2D(ox1,oy1, ox1+aQ, oy1-aP, C.F, 4.6, 14); // F 对角线（合力）
+    ctx.fillStyle='#0a3d7a'; ctx.font='bold 11px "Microsoft YaHei",sans-serif'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+    ctx.fillText('F∥='+s.mFpar.toFixed(2)+'F  F⊥='+s.mFper.toFixed(2)+'F', px1+10, py+ph-26);
+    ctx.fillStyle='#55627a'; ctx.font='10.5px "Microsoft YaHei",sans-serif';
+    ctx.fillText('u:平面内(→O₁)  n:垂直平面(→另一耙索)', px1+10, py+ph-11);
+  } else {
+    ctx.fillStyle='#7b8798'; ctx.font='12px "Microsoft YaHei",sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('点「+ 第一级」查看', px1+pw/2, py+ph/2+6);
+  }
+
+  // 第二级：F∥ = Fx + Fz （竖直面正视：水平 + 竖直）
+  panelBox(px2, py, pw, ph, '第二级 F∥=Fx+Fz（竖直面）');
+  const ox2=px2+22, oy2=py+ph-28;
+  if(stage>=2){
+    const aX=s.mFx*S, aZ=s.mFz*S;
+    arrow2D(ox2,oy2, ox2+aX, oy2, C.Fx, 4, 13);   // Fx 水平（橙）
+    arrow2D(ox2,oy2, ox2, oy2-aZ, C.Fz, 4, 13);   // Fz 竖直（青）
+    ctx.save(); ctx.setLineDash([5,4]); ctx.strokeStyle='#8a97a8'; ctx.lineWidth=1.2;
+    ctx.beginPath(); ctx.moveTo(ox2+aX,oy2); ctx.lineTo(ox2+aX,oy2-aZ); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ox2,oy2-aZ); ctx.lineTo(ox2+aX,oy2-aZ); ctx.stroke();
+    ctx.restore();
+    arrow2D(ox2,oy2, ox2+aX, oy2-aZ, C.Fq, 4.6, 14); // F∥ 对角线（紫）
+    ctx.fillStyle='#0a3d7a'; ctx.font='bold 11px "Microsoft YaHei",sans-serif'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+    ctx.fillText('Fx='+s.mFx.toFixed(2)+'F  Fz='+s.mFz.toFixed(2)+'F', px2+10, py+ph-26);
+    ctx.fillStyle='#55627a'; ctx.font='10.5px "Microsoft YaHei",sans-serif';
+    ctx.fillText('水平(运动方向)  竖直(向上)', px2+10, py+ph-11);
+  } else {
+    ctx.fillStyle='#7b8798'; ctx.font='12px "Microsoft YaHei",sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('点「+ 第二级」查看', px2+pw/2, py+ph/2+6);
+  }
+}
+
 function drawScene(t){
   ctx.clearRect(0,0,W,H);
   const bg=ctx.createLinearGradient(0,0,0,H);
@@ -387,6 +479,7 @@ function drawScene(t){
   }
 
   drawDecomp(s, g, g.A);
+  drawInsets(s);
 
   document.getElementById('dPhi').textContent=curPhi.toFixed(0)+'°';
   document.getElementById('dF').textContent=s.mF.toFixed(3);
@@ -399,7 +492,14 @@ function drawScene(t){
 
 /* ==================== 状态与交互 ==================== */
 let curPhi=30, forceScale=1.2;
+let stage=2;                       // 0 仅合力F; 1 +第一级; 2 +第二级
 let showL1=true, showL2=true, showPlane=true, showGrid=true;
+function setStage(k){
+  stage=k;
+  showL1 = stage>=1; showL2 = stage>=2;
+  ['bS0','bS1','bS2'].forEach(id=>document.getElementById(id).classList.remove('on'));
+  document.getElementById('bS'+k).classList.add('on');
+}
 let autoRot=true, scanning=false, scanDir=1, animating=true;
 let dragging=false, lastX=0, lastY=0;
 
@@ -411,8 +511,9 @@ document.getElementById('fsS').addEventListener('input', function(e){
   forceScale=parseFloat(e.target.value);
   document.getElementById('fsVal').textContent=forceScale.toFixed(2);
 });
-document.getElementById('cL1').addEventListener('change', e=>showL1=e.target.checked);
-document.getElementById('cL2').addEventListener('change', e=>showL2=e.target.checked);
+document.getElementById('bS0').addEventListener('click', ()=>setStage(0));
+document.getElementById('bS1').addEventListener('click', ()=>setStage(1));
+document.getElementById('bS2').addEventListener('click', ()=>setStage(2));
 document.getElementById('cPlane').addEventListener('change', e=>showPlane=e.target.checked);
 document.getElementById('cGrid').addEventListener('change', e=>showGrid=e.target.checked);
 
@@ -448,6 +549,7 @@ document.getElementById('bReset').addEventListener('click', ()=>{
   document.getElementById('phiS').value=30; document.getElementById('phiVal').textContent='30';
   document.getElementById('fsS').value=1.2; document.getElementById('fsVal').textContent='1.20';
   scanning=false; bScan.textContent='▶ 扫描 φ'; bScan.classList.remove('on');
+  setStage(2);
   setView('iso');
 });
 
