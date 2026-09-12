@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>氦气球绳拉力两级正交分解（含 2D 正视小图 + 逐级展开）</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:#eef2f7;color:#1c2530;}
+  #wrap{display:flex;height:100vh;}
+  #cvWrap{flex:1;position:relative;background:#eef2f7;}
+  canvas{display:block;width:100%;height:100%;cursor:grab;}
+  canvas:active{cursor:grabbing;}
+  #tip{position:absolute;left:12px;top:8px;font-size:11.5px;color:#7b8798;}
+  #side{width:320px;background:#fff;border-left:1px solid #d7e0ec;padding:14px 16px;overflow:auto;box-shadow:-2px 0 10px rgba(20,40,70,.06);}
+  h1{font-size:15px;margin:0 0 3px;color:#15233a;}
+  .sub{font-size:12px;color:#6b7a90;margin-bottom:10px;line-height:1.6;}
+  .row{margin:9px 0;}
+  .row label{display:block;margin-bottom:3px;color:#33445c;font-weight:600;font-size:12.5px;}
+  input[type=range]{width:100%;}
+  .val{color:#0a6cff;font-weight:700;}
+  .btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px;}
+  .btn{flex:1 1 46%;border:1px solid #b9c6d8;background:#f6f9fd;border-radius:7px;padding:6px 4px;cursor:pointer;font-size:12px;color:#243449;}
+  .btn:hover{border-color:#0a6cff;color:#0a6cff;}
+  .btn.on{background:#0a6cff;color:#fff;border-color:#0a6cff;}
+  .chk{display:flex;align-items:center;gap:6px;margin:5px 0;color:#33445c;font-size:12.5px;}
+  .chk input{width:15px;height:15px;}
+  hr{border:0;border-top:1px solid #e1e8f1;margin:10px 0;}
+  .lg{display:flex;align-items:center;gap:7px;margin:4px 0;font-size:12px;}
+  .sw{width:26px;height:5px;border-radius:3px;flex:none;}
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  td{padding:2px 3px;}
+  td.k{color:#55627a;} td.v{text-align:right;font-weight:700;color:#0a3d7a;}
+  .note{font-size:11.5px;color:#6b7a90;line-height:1.6;margin-top:8px;}
+  .eq{font-size:11.5px;color:#33445c;line-height:1.7;background:#f5f8fc;border:1px solid #e1e8f1;border-radius:6px;padding:6px 8px;margin-top:8px;}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="cvWrap">
+    <canvas id="cv"></canvas>
+    <div id="tip">拖动旋转 · 滚轮缩放 · 只显示一根绳拉力 T 的两级正交分解</div>
+  </div>
+  <div id="side">
+    <h1>绳拉力 T 的两级正交分解</h1>
+    <div class="sub">
+      ① <b>T</b> = <b>T⊥</b> + <b>T∥</b><br>
+      　T⊥：指向另一球的<b>水平</b>力（=球间弹力 F）；T∥：在重力·阻力所在<b>竖直面</b>内斜向下的力<br>
+      ② <b>T∥</b> = <b>Tx</b> + <b>Tz</b><br>
+      　Tx：指向<b>运动方向</b>的水平力（=空气阻力 f）；Tz：<b>竖直向下</b>的力（=浮力−重力 ΔF）<br>
+      <span style="color:#0a6cff">画面底部两个 2D 正视小图，把每一级分解画成真正的平行四边形 / 直角三角形；用「分解层级」逐级展开，避免两级挤在一起。</span>
+    </div>
+
+    <div class="row">
+      <label>速度 v = <span class="val" id="vVal">3.0</span> m/s</label>
+      <input type="range" id="vS" min="0.4" max="12" step="0.1" value="3.0">
+    </div>
+    <div class="row">
+      <label>箭头长度缩放 = <span class="val" id="fsVal">1.20</span>×</label>
+      <input type="range" id="fsS" min="0.4" max="3.0" step="0.05" value="1.2">
+    </div>
+
+    <div class="btns">
+      <button class="btn on" id="bRot">⟳ 自动旋转</button>
+      <button class="btn" id="bScan">▶ 扫描 v</button>
+      <button class="btn" id="bReset">↺ 复位</button>
+      <button class="btn" id="bPause">⏸ 暂停动画</button>
+    </div>
+
+    <div class="btns" style="margin-top:8px">
+      <button class="btn on" id="vIso">立体</button>
+      <button class="btn" id="vSide">侧视·看θ</button>
+      <button class="btn" id="vTop">俯视·看α</button>
+      <button class="btn" id="vPlane">正视·看平面</button>
+    </div>
+
+    <hr>
+    <label class="chk"><input type="checkbox" id="cPlane" checked> 半透明竖直面（重力·阻力所在平面）</label>
+    <label class="chk"><input type="checkbox" id="cGrid" checked> 显示地面网格</label>
+
+    <div class="row">
+      <label>分解层级（逐级展开，避免两级挤在一起）</label>
+      <div class="btns">
+        <button class="btn" id="bS0" style="flex:1 1 31%">仅合力 T</button>
+        <button class="btn" id="bS1" style="flex:1 1 31%">+ 第一级</button>
+        <button class="btn on" id="bS2" style="flex:1 1 31%">+ 第二级</button>
+      </div>
+    </div>
+
+    <hr>
+    <div class="lg"><span class="sw" style="background:#4a1d6e"></span> T　绳拉力（合力①）</div>
+    <div class="lg"><span class="sw" style="background:#1c7a3f"></span> T⊥ 指向另一球的水平分量（=F）</div>
+    <div class="lg"><span class="sw" style="background:#8e44ad"></span> T∥ 竖直面内斜向下分量（合力②）</div>
+    <div class="lg"><span class="sw" style="background:#d1531c"></span> Tx 指向运动方向的水平分量（=f）</div>
+    <div class="lg"><span class="sw" style="background:#0e6b5e"></span> Tz 竖直向下分量（=ΔF）</div>
+
+    <div class="eq">
+      <b>与原题对应</b>（双球匀速被拉着走，两绳平面与水平夹角 θ）：<br>
+      T⊥ = 球间弹力 F（<b>恒定</b>）<br>
+      Tx = 空气阻力 f = kv（随 v 增大）<br>
+      Tz = F浮 − G = ΔF（<b>恒定</b>，不随 v 变）<br>
+      v 增大 → f↑ → Tx 变长、Tz 不变 ⇒ T∥ 更平 ⇒ θ 减小（答 B）；<br>
+      又 T = ΔF / sinθ，θ↓ ⇒ T↑（答 D）。
+    </div>
+
+    <hr>
+    <table>
+      <tr><td class="k">绳角 θ</td><td class="v" id="dTh">–</td></tr>
+      <tr><td class="k">俯视张角 α</td><td class="v" id="dAl">–</td></tr>
+      <tr><td class="k">T 绳拉力</td><td class="v" id="dT">–</td></tr>
+      <tr><td class="k">T⊥（=F）</td><td class="v" id="dTp">–</td></tr>
+      <tr><td class="k">T∥（斜向下）</td><td class="v" id="dTq">–</td></tr>
+      <tr><td class="k">Tx（=f）</td><td class="v" id="dTx">–</td></tr>
+      <tr><td class="k">Tz（=ΔF）</td><td class="v" id="dTz">–</td></tr>
+    </table>
+    <div class="note">结构完全类比耙索题（F = F⊥+F∥，F∥=Fx+Fz）：母力都做两级正交分解，只是气球的"作用平面"是重力·阻力竖直面、耙索的"作用平面"是倾斜绳索面。底部 2D 小图把每一级画成真正的矩形 / 直角三角形，不被 3D 透视压斜。</div>
+  </div>
+</div>
+
+<script>
+/* ==================== 向量数学 ==================== */
+function V(x,y,z){return {x:x,y:y,z:z};}
+function add(a,b){return V(a.x+b.x,a.y+b.y,a.z+b.z);}
+function sub(a,b){return V(a.x-b.x,a.y-b.y,a.z-b.z);}
+function mul(a,s){return V(a.x*s,a.y*s,a.z*s);}
+function dot(a,b){return a.x*b.x+a.y*b.y+a.z*b.z;}
+function cross(a,b){return V(a.y*b.z-a.z*b.y, a.z*b.x-a.x*b.z, a.x*b.y-a.y*b.x);}
+function len(a){return Math.sqrt(dot(a,a));}
+function norm(a){var l=len(a)||1; return mul(a,1/l);}
+
+/* ==================== 物理模型（气球） ==================== */
+/* 坐标: X=前进方向(运动方向), Y=竖直向上, Z=横向(侧向，两球连线) */
+const P = { G0:1.0, Fb:1.6, k:0.30, L:2.5, r:0.45 };
+P.dF = P.Fb - P.G0;
+function state(v){
+  const kv=P.k*v, kv2=kv*kv, dF=P.dF, dF2=dF*dF, L2=P.L*P.L, r2=P.r*P.r;
+  const cos2 = (kv2*L2 + dF2*r2) / (L2*(kv2+dF2));
+  const ct = Math.sqrt(Math.min(1,Math.max(0,cos2)));
+  const st = Math.sqrt(Math.max(0,1-cos2));
+  const theta = Math.acos(ct);
+  const z0 = P.L*st;
+  const dx = Math.sqrt(Math.max(1e-6, L2*cos2 - r2));
+  const T  = dF/st;
+  const f  = kv;
+  const F  = P.r*Math.sqrt(kv2+dF2)/Math.sqrt(L2-r2);
+  const Tx = T*dx/P.L;     // 指向运动方向(+X)
+  const Tz = T*z0/P.L;     // 竖直向下(大小) = ΔF
+  const Ty = T*P.r/P.L;    // 指向另一球(大小) = F
+  const Tq = Math.sqrt(Tx*Tx + Tz*Tz);   // 斜向下分量 T∥
+  const alpha = Math.asin(Math.min(1, P.r/(P.L*ct)));
+  return {v:v, theta:theta, alpha:alpha, z0:z0, xb:-dx, T:T, f:f, F:F,
+          Tx:Tx, Tz:Tz, Ty:Ty, Tq:Tq};
+}
+
+/* ==================== 相机与投影 ==================== */
+const cam = { az:0.85, el:0.38, dist:11.0, target:V(-0.9,0.45,0) };
+let camPos, camF, camR, camU, focal=700;
+function updCam(){
+  const ce=Math.cos(cam.el), se=Math.sin(cam.el);
+  const ca=Math.cos(cam.az), sa=Math.sin(cam.az);
+  camPos = add(cam.target, V(cam.dist*ce*sa, cam.dist*se, cam.dist*ce*ca));
+  camF = norm(sub(cam.target, camPos));
+  camR = norm(cross(camF, V(0,1,0)));
+  camU = cross(camR, camF);
+}
+function proj(Pt){
+  const d = sub(Pt, camPos);
+  const z = dot(d, camF);
+  if(z < 0.2) return null;
+  return { x: W/2 + (dot(d,camR)/z)*focal, y: H/2 - (dot(d,camU)/z)*focal, z:z };
+}
+
+/* ==================== 画布 ==================== */
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W=0, H=0;
+function resize(){
+  const box = document.getElementById('cvWrap');
+  W = box.clientWidth || window.innerWidth;
+  H = box.clientHeight || window.innerHeight;
+  if(W<2) W = window.innerWidth;
+  if(H<2) H = window.innerHeight;
+  const dpr = Math.min(window.devicePixelRatio||1, 2);
+  cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  focal = Math.min(W,H)*1.15;
+}
+window.addEventListener('resize', resize);
+
+/* ==================== 颜色 ==================== */
+function hex2rgb(h){ h=h.replace('#',''); return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]; }
+function shade(h,k){
+  const c=hex2rgb(h);
+  const f=v=>Math.max(0,Math.min(255,Math.round(k>0 ? v+(255-v)*k : v*(1+k))));
+  return 'rgb('+f(c[0])+','+f(c[1])+','+f(c[2])+')';
+}
+const C = {
+  T:'#4a1d6e',      // 深紫 绳拉力（合力①）
+  Tq:'#8e44ad',     // 中紫 斜向下分量（合力②）
+  Tp:'#1c7a3f',     // 绿 指向另一球的水平分量
+  Tx:'#d1531c',     // 橙 指向运动方向的水平分量
+  Tz:'#0e6b5e',     // 青 竖直向下分量
+  rope:'#46546a', person:'#33414f', ball:'#ff6b81', ball2:'#ff8fa3',
+  grid:'#d5dde8', line:'#5b6776'
+};
+
+/* ==================== 绘图基元 ==================== */
+function line3(A,B,color,w,dash){
+  const a=proj(A), b=proj(B);
+  if(!a||!b) return;
+  ctx.save();
+  ctx.strokeStyle=color; ctx.lineWidth=w; ctx.lineCap='round';
+  if(dash) ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+  ctx.restore();
+}
+function arrow3(A,B,color,w,hs){
+  const a=proj(A), b=proj(B);
+  if(!a||!b) return;
+  ctx.save();
+  ctx.strokeStyle=color; ctx.lineWidth=w; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+  ctx.restore();
+  const dx=b.x-a.x, dy=b.y-a.y, L=Math.hypot(dx,dy);
+  if(L<2) return;
+  const ux=dx/L, uy=dy/L, px=-uy, py=ux;
+  const s=Math.min(hs||14, L*0.45);
+  ctx.fillStyle=color;
+  ctx.beginPath();
+  ctx.moveTo(b.x,b.y);
+  ctx.lineTo(b.x-ux*s+px*s*0.40, b.y-uy*s+py*s*0.40);
+  ctx.lineTo(b.x-ux*s-px*s*0.40, b.y-uy*s-py*s*0.40);
+  ctx.closePath(); ctx.fill();
+}
+function sphere3(c,R,color,alpha){
+  const p=proj(c); if(!p) return;
+  const rs=(R/p.z)*focal;
+  if(rs<0.6) return;
+  const r0=Math.max(rs,1);
+  const g=ctx.createRadialGradient(p.x-r0*0.36, p.y-r0*0.36, r0*0.03, p.x, p.y, r0);
+  g.addColorStop(0, shade(color,0.60));
+  g.addColorStop(0.62, color);
+  g.addColorStop(1, shade(color,-0.32));
+  ctx.save();
+  ctx.globalAlpha=(alpha===undefined?1:alpha);
+  ctx.beginPath(); ctx.arc(p.x,p.y,r0,0,Math.PI*2);
+  ctx.fillStyle=g; ctx.fill();
+  ctx.globalAlpha=1;
+  ctx.strokeStyle=shade(color,-0.35); ctx.lineWidth=1.1; ctx.stroke();
+  ctx.restore();
+}
+function quad3(corners, fill, stroke, alpha){
+  const pts = corners.map(proj);
+  if(pts.indexOf(null)>=0) return;
+  ctx.save();
+  ctx.globalAlpha=alpha;
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x, pts[i].y);
+  ctx.closePath();
+  ctx.fillStyle=fill; ctx.fill();
+  ctx.globalAlpha=1;
+  if(stroke){ ctx.save(); ctx.strokeStyle=stroke; ctx.lineWidth=1.2; ctx.stroke(); ctx.restore(); }
+  ctx.restore();
+}
+function label3(Pt, text, color, dx, dy){
+  const p=proj(Pt); if(!p) return;
+  ctx.save();
+  ctx.font='bold 13px "Microsoft YaHei", sans-serif';
+  ctx.textAlign='left'; ctx.textBaseline='middle';
+  ctx.lineWidth=3.6; ctx.strokeStyle='rgba(238,242,247,0.96)';
+  ctx.strokeText(text, p.x+(dx||8), p.y+(dy||0));
+  ctx.fillStyle=color;
+  ctx.fillText(text, p.x+(dx||8), p.y+(dy||0));
+  ctx.restore();
+}
+
+/* ==================== 场景 ==================== */
+const GY = -1.75;
+function drawGround(t){
+  const sp=1.0, ext=9;
+  const off = -((t*0.7) % sp);
+  for(let z=-ext; z<=ext; z+=sp) line3(V(-ext,GY,z), V(ext,GY,z), C.grid, 1);
+  for(let x=-ext; x<=ext; x+=sp){
+    const xx = x + off;
+    line3(V(xx,GY,-ext), V(xx,GY,ext), C.grid, 1);
+  }
+}
+function drawPerson(){
+  const hip=V(0.35,-0.85,0), sho=V(0.35,0.05,0), head=V(0.35,0.30,0);
+  line3(hip, V(0.20,GY,0), C.person, 4.5);
+  line3(hip, V(0.50,GY,0), C.person, 4.5);
+  line3(hip, sho, C.person, 5.5);
+  line3(sho, V(0,0,0), C.person, 3.5);
+  sphere3(head, 0.16, '#e8b98f', 1);
+}
+function drawMarkers(B1,B2,Hp){
+  sphere3(B1, P.r, C.ball, 0.55);
+  sphere3(B2, P.r, C.ball2, 0.42);
+  sphere3(Hp, 0.10, C.person, 1);
+  label3(Hp, '手', '#33414f', -22, -8);
+  label3(B1, '球₁', '#c0392b', 12, -6);
+  label3(B2, '球₂', '#c0392b', 12, -6);
+}
+
+/* --- 两级正交分解（在球₁画出） --- */
+function drawDecomp(s, B1, Hp){
+  const fs = forceScale;
+  const O  = B1;
+  const Tdir = norm(sub(Hp, B1));
+  const cT  = mul(Tdir, s.T*fs);
+  const cTp = V(0, 0, -s.Ty*fs);            // T⊥ 水平·指向另一球(-Z)
+  const cTq = V(s.Tx*fs, -s.Tz*fs, 0);       // T∥ 斜向下(在重力-阻力平面内)
+  const cTx = V(s.Tx*fs, 0, 0);              // Tx 水平·指向运动方向(+X)
+  const cTz = V(0, -s.Tz*fs, 0);             // Tz 竖直向下
+
+  const pTp = add(O, cTp);
+  const pTq = add(O, cTq);
+  const pT  = add(O, cT);
+  const pTx = add(O, cTx);
+  const pTz = add(O, cTz);
+
+  // ① 级平行四边形补全虚线：T = T⊥ + T∥
+  if(showL1){ line3(pTp, pT, C.line, 1.3, [5,4]); line3(pTq, pT, C.line, 1.3, [5,4]); }
+  // ② 级平行四边形补全虚线：T∥ = Tx + Tz
+  if(showL2){ line3(pTx, pTq, C.line, 1.3, [5,4]); line3(pTz, pTq, C.line, 1.3, [5,4]); }
+  // ② 级分量箭头
+  if(showL2){ arrow3(O, pTx, C.Tx, 3.4, 13); arrow3(O, pTz, C.Tz, 3.4, 13); }
+  // ① 级分量箭头
+  if(showL1){ arrow3(O, pTp, C.Tp, 3.4, 13); arrow3(O, pTq, C.Tq, 3.8, 14); }
+  // 合力箭头
+  arrow3(O, pT, C.T, 4.2, 15);
+
+  // 标签
+  label3(pT,  'T',  C.T,  9, -7);
+  if(showL1){ label3(pTp, 'T⊥', C.Tp, 10, 10); label3(pTq, 'T∥', C.Tq, -30, -6); }
+  if(showL2){ label3(pTx, 'Tx', C.Tx, 9, 14); label3(pTz, 'Tz', C.Tz, 10, 0); }
+}
+
+/* --- 2D 正视分解面（底部小图，把每一级画成真正的平行四边形/直角三角形） --- */
+function arrow2D(x0,y0,x1,y1,color,w,hs){
+  ctx.save();
+  ctx.strokeStyle=color; ctx.lineWidth=w; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+  const dx=x1-x0, dy=y1-y0, L=Math.hypot(dx,dy);
+  if(L>3){ const ux=dx/L, uy=dy/L, nx=-uy, ny=ux, s=Math.min(hs||13,L*0.42);
+    ctx.fillStyle=color;
+    ctx.beginPath(); ctx.moveTo(x1,y1);
+    ctx.lineTo(x1-ux*s+nx*s*0.42, y1-uy*s+ny*s*0.42);
+    ctx.lineTo(x1-ux*s-nx*s*0.42, y1-uy*s-ny*s*0.42);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+}
+function roundRectPath(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+function panelBox(px,py,pw,ph,title){
+  ctx.save();
+  ctx.fillStyle='rgba(255,255,255,0.95)';
+  ctx.strokeStyle='#cdd8e6'; ctx.lineWidth=1.2;
+  roundRectPath(px,py,pw,ph,9); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='#15233a'; ctx.font='bold 12px "Microsoft YaHei",sans-serif';
+  ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText(title, px+10, py+7);
+  ctx.restore();
+}
+function drawInsets(s){
+  if(W<560) return;
+  const pw=250, ph=165, gap=12;
+  const py = H - ph - 16;
+  const px1 = 16, px2 = px1+pw+gap;
+  const S = 92 / Math.max(s.T, 1e-6);       // 母力 T 恒映射为 92px，分量按比例自适应
+
+  // 第一级：T = T⊥ + T∥ （T⊥⊥T∥：T⊥ 水平向另一球，T∥ 在重力·阻力面内斜向下）
+  panelBox(px1, py, pw, ph, '第一级 T=T⊥+T∥（竖直面）');
+  const ox1=px1+24, oy1=py+ph-32;
+  if(stage>=1){
+    const aP=s.Ty*S;                                  // T⊥ 长度（水平）
+    const aQ=s.Tq*S;                                  // T∥ 长度（斜向下）
+    const thq=Math.atan2(s.Tz, s.Tx);                 // T∥ 与水平夹角（向下为正）
+    const ux=Math.cos(thq), uy=Math.sin(thq);         // T∥ 方向
+    const nx=Math.sin(thq), ny=-Math.cos(thq);        // 垂直 T∥（T⊥ 方向，朝上偏）
+    const exTp=ox1+aP*nx, eyTp=oy1+aP*ny;            // T⊥ 端
+    const exTq=ox1+aQ*ux, eyTq=oy1+aQ*uy;            // T∥ 端
+    const exT =ox1+aP*nx+aQ*ux, eyT=oy1+aP*ny+aQ*uy; // T 对角
+    arrow2D(ox1,oy1, exTp,eyTp, C.Tp, 4, 13);        // T⊥ 绿
+    arrow2D(ox1,oy1, exTq,eyTq, C.Tq, 4, 13);        // T∥ 紫
+    ctx.save(); ctx.setLineDash([5,4]); ctx.strokeStyle='#8a97a8'; ctx.lineWidth=1.2;
+    ctx.beginPath(); ctx.moveTo(exTp,eyTp); ctx.lineTo(exT,eyT); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(exTq,eyTq); ctx.lineTo(exT,eyT); ctx.stroke();
+    ctx.restore();
+    arrow2D(ox1,oy1, exT,eyT, C.T, 4.6, 14);         // T 深紫（对角）
+    ctx.fillStyle='#0a3d7a'; ctx.font='bold 11px "Microsoft YaHei",sans-serif'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+    ctx.fillText('T⊥='+(s.Ty/s.T).toFixed(2)+'T  T∥='+(s.Tq/s.T).toFixed(2)+'T', px1+10, py+ph-30);
+    ctx.fillStyle='#55627a'; ctx.font='10.5px "Microsoft YaHei",sans-serif';
+    ctx.fillText('T⊥:指向另一球(水平)  T∥:重力·阻力面内斜下', px1+10, py+ph-13);
+  } else {
+    ctx.fillStyle='#7b8798'; ctx.font='12px "Microsoft YaHei",sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('点「+ 第一级」查看', px1+pw/2, py+ph/2+6);
+  }
+
+  // 第二级：T∥ = Tx + Tz （水平 + 竖直向下，直角三角形）
+  panelBox(px2, py, pw, ph, '第二级 T∥=Tx+Tz（竖直面）');
+  const ox2=px2+24, oy2=py+ph-32;
+  if(stage>=2){
+    const aX=s.Tx*S, aZ=s.Tz*S;
+    arrow2D(ox2,oy2, ox2+aX, oy2, C.Tx, 4, 13);        // Tx 橙（水平）
+    arrow2D(ox2,oy2, ox2, oy2+aZ, C.Tz, 4, 13);        // Tz 青（竖直向下）
+    ctx.save(); ctx.setLineDash([5,4]); ctx.strokeStyle='#8a97a8'; ctx.lineWidth=1.2;
+    ctx.beginPath(); ctx.moveTo(ox2+aX,oy2); ctx.lineTo(ox2+aX,oy2+aZ); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ox2,oy2+aZ); ctx.lineTo(ox2+aX,oy2+aZ); ctx.stroke();
+    ctx.restore();
+    arrow2D(ox2,oy2, ox2+aX, oy2+aZ, C.Tq, 4.6, 14);  // T∥ 紫（对角）
+    ctx.fillStyle='#0a3d7a'; ctx.font='bold 11px "Microsoft YaHei",sans-serif'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+    ctx.fillText('Tx='+(s.Tx/s.Tq).toFixed(2)+'T∥  Tz='+(s.Tz/s.Tq).toFixed(2)+'T∥', px2+10, py+ph-30);
+    ctx.fillStyle='#55627a'; ctx.font='10.5px "Microsoft YaHei",sans-serif';
+    ctx.fillText('Tx:运动方向(水平)  Tz:竖直向下(=ΔF)', px2+10, py+ph-13);
+  } else {
+    ctx.fillStyle='#7b8798'; ctx.font='12px "Microsoft YaHei",sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('点「+ 第二级」查看', px2+pw/2, py+ph/2+6);
+  }
+}
+
+function drawScene(t){
+  ctx.clearRect(0,0,W,H);
+  const bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#f4f7fb'); bg.addColorStop(1,'#e4eaf3');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  updCam();
+  const s = state(curV);
+  const Hp = V(0,0,0);
+  const B1 = V(s.xb, s.z0,  P.r);   // 被分析的气球
+  const B2 = V(s.xb, s.z0, -P.r);   // 另一个气球
+
+  if(showGrid) drawGround(t);
+  drawPerson();
+  line3(Hp, B1, C.rope, 2.0);
+  line3(Hp, B2, C.rope, 2.0);
+  drawMarkers(B1, B2, Hp);
+
+  // 半透明竖直面：重力与阻力所在平面（过球心、平行 X-Y、Z = P.r）
+  if(showPlane){
+    const hs=2.0, zz=P.r;
+    quad3([ V(B1.x-hs, B1.y-hs, zz), V(B1.x+hs, B1.y-hs, zz),
+            V(B1.x+hs, B1.y+hs, zz), V(B1.x-hs, B1.y+hs, zz) ],
+          '#2f6fb0', 'rgba(47,111,176,0.55)', 0.11);
+  }
+
+  if(stage>=1) drawDecomp(s, B1, Hp);
+  drawInsets(s);
+
+  document.getElementById('dTh').textContent=(s.theta*180/Math.PI).toFixed(1)+'°';
+  document.getElementById('dAl').textContent=(s.alpha*180/Math.PI).toFixed(1)+'°';
+  document.getElementById('dT').textContent=s.T.toFixed(3);
+  document.getElementById('dTp').textContent=s.Ty.toFixed(3);
+  document.getElementById('dTq').textContent=s.Tq.toFixed(3);
+  document.getElementById('dTx').textContent=s.Tx.toFixed(3);
+  document.getElementById('dTz').textContent=s.Tz.toFixed(3);
+}
+
+/* ==================== 状态与交互 ==================== */
+let curV=3.0, forceScale=1.2;
+let stage=2;                       // 0 仅合力T; 1 +第一级; 2 +第二级
+let showL1=true, showL2=true, showPlane=true, showGrid=true;
+function setStage(k){
+  stage=k;
+  showL1 = stage>=1; showL2 = stage>=2;
+  ['bS0','bS1','bS2'].forEach(id=>document.getElementById(id).classList.remove('on'));
+  document.getElementById('bS'+k).classList.add('on');
+}
+let autoRot=true, scanning=false, scanDir=1, animating=true;
+let dragging=false, lastX=0, lastY=0;
+
+document.getElementById('vS').addEventListener('input', function(e){
+  curV=parseFloat(e.target.value);
+  document.getElementById('vVal').textContent=curV.toFixed(1);
+});
+document.getElementById('fsS').addEventListener('input', function(e){
+  forceScale=parseFloat(e.target.value);
+  document.getElementById('fsVal').textContent=forceScale.toFixed(2);
+});
+document.getElementById('bS0').addEventListener('click', ()=>setStage(0));
+document.getElementById('bS1').addEventListener('click', ()=>setStage(1));
+document.getElementById('bS2').addEventListener('click', ()=>setStage(2));
+document.getElementById('cPlane').addEventListener('change', e=>showPlane=e.target.checked);
+document.getElementById('cGrid').addEventListener('change', e=>showGrid=e.target.checked);
+
+const bRot=document.getElementById('bRot');
+bRot.addEventListener('click', ()=>{ autoRot=!autoRot; bRot.classList.toggle('on',autoRot); });
+const bScan=document.getElementById('bScan');
+bScan.addEventListener('click', ()=>{
+  scanning=!scanning;
+  bScan.textContent = scanning ? '⏸ 停扫描' : '▶ 扫描 v';
+  bScan.classList.toggle('on', scanning);
+});
+const bPause=document.getElementById('bPause');
+bPause.addEventListener('click', ()=>{
+  animating=!animating;
+  bPause.textContent = animating ? '⏸ 暂停动画' : '▶ 继续动画';
+  bPause.classList.toggle('on', !animating);
+});
+
+function setView(k){
+  ['vIso','vSide','vTop','vPlane'].forEach(id=>document.getElementById(id).classList.remove('on'));
+  if(k==='iso'){ cam.az=0.85; cam.el=0.38; document.getElementById('vIso').classList.add('on'); }
+  if(k==='side'){ cam.az=0.0; cam.el=0.12; document.getElementById('vSide').classList.add('on'); }
+  if(k==='top'){ cam.az=0.0; cam.el=1.34; document.getElementById('vTop').classList.add('on'); }
+  if(k==='plane'){ cam.az=Math.PI/2; cam.el=0.16; document.getElementById('vPlane').classList.add('on'); }
+}
+document.getElementById('vIso').addEventListener('click', ()=>setView('iso'));
+document.getElementById('vSide').addEventListener('click', ()=>setView('side'));
+document.getElementById('vTop').addEventListener('click', ()=>setView('top'));
+document.getElementById('vPlane').addEventListener('click', ()=>setView('plane'));
+document.getElementById('bReset').addEventListener('click', ()=>{
+  cam.dist=11.0; cam.target=V(-0.9,0.45,0);
+  curV=3.0; forceScale=1.2;
+  document.getElementById('vS').value=3.0; document.getElementById('vVal').textContent='3.0';
+  document.getElementById('fsS').value=1.2; document.getElementById('fsVal').textContent='1.20';
+  scanning=false; bScan.textContent='▶ 扫描 v'; bScan.classList.remove('on');
+  setStage(2);
+  setView('iso');
+});
+
+cv.addEventListener('mousedown', e=>{ dragging=true; lastX=e.clientX; lastY=e.clientY; });
+window.addEventListener('mouseup', ()=>{ dragging=false; });
+window.addEventListener('mousemove', e=>{
+  if(!dragging) return;
+  cam.az -= (e.clientX-lastX)*0.007;
+  cam.el += (e.clientY-lastY)*0.007;
+  cam.el = Math.max(-0.35, Math.min(1.45, cam.el));
+  lastX=e.clientX; lastY=e.clientY;
+});
+cv.addEventListener('wheel', e=>{
+  e.preventDefault();
+  cam.dist = Math.max(4.0, Math.min(26, cam.dist + e.deltaY*0.012));
+}, {passive:false});
+
+/* ==================== 主循环 ==================== */
+let lastT = performance.now(), tt = 0;
+function loop(now){
+  const dt = Math.min((now-lastT)/1000, 0.06); lastT=now;
+  if(animating){
+    tt += dt;
+    if(autoRot && !dragging) cam.az += dt*0.28;
+    if(scanning){
+      curV += scanDir*dt*2.2;
+      if(curV>12){curV=12; scanDir=-1;} if(curV<0.4){curV=0.4; scanDir=1;}
+      document.getElementById('vS').value=curV;
+      document.getElementById('vVal').textContent=curV.toFixed(1);
+    }
+  }
+  drawScene(tt);
+  requestAnimationFrame(loop);
+}
+resize();
+setView('iso');
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
