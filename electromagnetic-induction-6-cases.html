@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>电磁感应 6 种情况 · 物理规律与动画</title>
+<style>
+  :root{
+    --bg:#f4f7fb; --card:#ffffff; --ink:#1b2a3d; --ink2:#5a6b80; --line:#e2e9f2;
+    --blue:#12507e; --blue2:#2f7fc1; --field:#eaf3fb; --fieldx:#a8c8e6;
+    --v:#e8833a; --fa:#d64545; --cur:#7b5cd6; --acc:#0f6f8c; --f:#c2417a; --ok:#1f9d63;
+    --shadow:0 4px 18px rgba(28,60,100,.08);
+    --sans:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
+    --serif:"Times New Roman",Times,serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;padding:18px 22px 60px}
+  .wrap{max-width:1500px;margin:0 auto}
+
+  /* 顶部标题 */
+  header{background:linear-gradient(120deg,#0e3f66,#1c6ea9);color:#fff;border-radius:16px;padding:20px 26px;box-shadow:var(--shadow)}
+  header h1{font-size:30px;letter-spacing:.5px}
+  header p{margin-top:6px;color:#cfe4f5;font-size:15px}
+
+  /* 统一模型条 */
+  .modelbar{background:var(--card);border-radius:14px;padding:16px 20px;margin-top:14px;box-shadow:var(--shadow)}
+  .modelbar h2{font-size:15px;color:var(--ink2);font-weight:600;margin-bottom:12px}
+  .chain{display:flex;align-items:stretch;gap:8px;flex-wrap:wrap}
+  .node{flex:1;min-width:150px;background:#f7fafd;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;position:relative;transition:.25s}
+  .node.on{border-color:var(--blue2);background:#eef6fd;box-shadow:0 0 0 3px rgba(47,127,193,.12)}
+  .node .k{font-size:12px;color:var(--ink2)}
+  .node .eq{font-family:var(--serif);font-style:italic;font-size:20px;margin-top:2px}
+  .arrow{display:flex;align-items:center;color:var(--blue2);font-size:22px;padding:0 2px}
+  .tools{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+  .tool{background:#f7fafd;border:1px solid var(--line);border-radius:8px;padding:7px 12px;font-size:13px}
+  .tool b{color:var(--blue)}
+  .tool.on{background:#fff6ec;border-color:#f0c89a}
+
+  /* 主体布局 */
+  .layout{display:grid;grid-template-columns:212px 1fr;gap:16px;margin-top:16px}
+  nav{display:flex;flex-direction:column;gap:9px}
+  nav .cap{font-size:13px;color:var(--ink2);font-weight:600;padding-left:4px}
+  .tab{background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:12px 12px;cursor:pointer;transition:.2s;display:flex;gap:10px;align-items:center;text-align:left}
+  .tab:hover{border-color:var(--blue2);transform:translateX(2px)}
+  .tab.active{color:#fff;border-color:transparent;box-shadow:var(--shadow)}
+  .tab .no{font-family:var(--serif);font-size:22px;font-weight:bold;opacity:.9;width:28px;flex:none}
+  .tab .nm{font-size:14px;font-weight:600;line-height:1.35}
+
+  /* 内容卡 */
+  .content{background:var(--card);border-radius:16px;padding:22px 24px;box-shadow:var(--shadow);min-width:0}
+  .ctitle{font-size:25px;font-weight:800;line-height:1.35;color:var(--ink)}
+  .ctitle .badge{display:inline-block;font-size:13px;color:#fff;padding:3px 10px;border-radius:20px;vertical-align:middle;margin-right:8px;font-weight:600}
+  .cond{margin-top:10px;background:#f7fafd;border-left:4px solid var(--blue2);border-radius:6px;padding:8px 12px;color:var(--ink2);font-size:14px}
+
+  .stage{display:grid;grid-template-columns:1fr 330px;gap:14px;margin-top:16px}
+  .scene{background:linear-gradient(180deg,#fbfdff,#f2f7fc);border:1px solid var(--line);border-radius:12px;padding:8px;position:relative;overflow:hidden}
+  canvas{display:block;width:100%;height:auto;border-radius:8px}
+  .ctrl{display:flex;align-items:center;gap:8px;margin-top:8px;padding:0 4px;flex-wrap:wrap}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 14px;font-size:14px;cursor:pointer;color:var(--ink);font-family:var(--sans)}
+  .btn:hover{border-color:var(--blue2)}
+  .btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+  .ctrl .sp{font-size:13px;color:var(--ink2);margin-left:auto}
+
+  .panel{display:flex;flex-direction:column;gap:12px}
+  .metrics{background:#f7fafd;border:1px solid var(--line);border-radius:12px;padding:12px}
+  .metrics h3,.graph h3{font-size:13px;color:var(--ink2);font-weight:600;margin-bottom:8px}
+  .mgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .m{background:#fff;border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+  .m .l{font-size:12px;color:var(--ink2)}
+  .m .val{font-family:var(--serif);font-size:19px;font-weight:bold}
+  .graph{background:#f7fafd;border:1px solid var(--line);border-radius:12px;padding:10px}
+  .legend{display:flex;gap:12px;font-size:12px;margin-top:4px;color:var(--ink2)}
+  .legend i{display:inline-block;width:16px;height:3px;border-radius:2px;vertical-align:middle;margin-right:4px}
+
+  .live{margin-top:14px;background:#fffaf2;border:1px solid #f3dcb8;border-radius:10px;padding:10px 14px;font-family:var(--serif);font-style:italic;font-size:16px;color:#7a5210}
+
+  /* 分步公式 */
+  .derive{margin-top:18px}
+  .derive h3{font-size:16px;margin-bottom:10px;color:var(--blue)}
+  .step{display:flex;gap:12px;padding:8px 12px;border-radius:8px;border:1px solid transparent;font-size:15px}
+  .step:nth-child(odd){background:#fafbfd}
+  .step .tag{flex:none;width:66px;font-weight:700;color:var(--blue2);font-size:13px;padding-top:2px}
+  .step .txt{font-family:var(--serif);font-size:16px}
+  .step .txt .note{font-family:var(--sans);font-style:normal;color:var(--ink2);font-size:14px}
+  .step.key{background:#eef6fd;border-color:#cfe4f5}
+  .step.key .tag{color:var(--blue)}
+
+  /* 结论与易错 */
+  .boxes{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+  .box{border-radius:12px;padding:14px 16px}
+  .box.ok{background:#eaf7f0;border:1px solid #bfe4d1}
+  .box.warn{background:#fdf0ef;border:1px solid #f2cfcb}
+  .box h4{font-size:14px;margin-bottom:6px}
+  .box.ok h4{color:var(--ok)} .box.warn h4{color:#c0392b}
+  .box p{font-size:14.5px;line-height:1.65}
+
+  /* 底部总结 */
+  .summary{background:var(--card);border-radius:16px;padding:20px 24px;margin-top:16px;box-shadow:var(--shadow)}
+  .summary h2{font-size:19px;color:var(--blue);margin-bottom:14px}
+  .sumgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .sumcard{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fafcff}
+  .sumcard .h{font-weight:700;font-size:15px;margin-bottom:6px}
+  .sumcard p{font-size:13.5px;color:var(--ink2)}
+  .sumcard .fm{font-family:var(--serif);font-style:italic;font-size:16px;color:var(--ink);margin-top:6px}
+
+  .frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;line-height:1.05;margin:0 2px}
+  .frac>span:first-child{border-bottom:1.3px solid currentColor;padding:0 .18em}
+  .frac>span:last-child{padding:0 .18em}
+  sup{font-size:.72em} sub{font-size:.72em}
+
+  @media(max-width:1100px){
+    .layout{grid-template-columns:1fr}
+    nav{flex-direction:row;flex-wrap:wrap}
+    nav .cap{width:100%}
+    .tab{flex:1;min-width:150px}
+    .stage{grid-template-columns:1fr}
+    .sumgrid{grid-template-columns:1fr}
+    .boxes{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>电磁感应 6 种情况 · 一步步算清楚</h1>
+    <p>一个模型、一条因果链、三大工具——把导体棒问题从"变加速"里理清楚　｜　面向高中生 · 规律的提炼与可视化</p>
+  </header>
+
+  <section class="modelbar">
+    <h2>贯穿全篇的统一因果链（点击情况时，本情况涉及的环节会亮起）</h2>
+    <div class="chain">
+      <div class="node" data-node="0"><div class="k">① 切割生电</div><div class="eq">E = BLv</div></div>
+      <div class="arrow">→</div>
+      <div class="node" data-node="1"><div class="k">② 闭合回路</div><div class="eq">I = E / R</div></div>
+      <div class="arrow">→</div>
+      <div class="node" data-node="2"><div class="k">③ 安培力（阻力）</div><div class="eq">F<sub>A</sub> = BIL</div></div>
+      <div class="arrow">→</div>
+      <div class="node" data-node="3"><div class="k">④ 决定运动</div><div class="eq">a = F<sub>合</sub> / m</div></div>
+    </div>
+    <div class="tools">
+      <div class="tool" data-tool="v"><b>求 v、a / 收尾状态</b> → 牛顿第二定律 + 平衡条件</div>
+      <div class="tool" data-tool="q"><b>求电荷量 q</b> → 动量定理 BĪL·t=BLq，或 q=ΔΦ/R</div>
+      <div class="tool" data-tool="Q"><b>求焦耳热 Q</b> → 能量守恒（克服安培力做功）</div>
+    </div>
+  </section>
+
+  <div class="layout">
+    <nav id="nav"><div class="cap">六种情况 · 点选查看动画</div></nav>
+    <main class="content" id="content"></main>
+  </div>
+
+  <section class="summary">
+    <h2>提炼：所有情况都是"同一条链 + 三个工具"的组合</h2>
+    <div class="sumgrid">
+      <div class="sumcard">
+        <div class="h">① 求运动（v、a、收尾）</div>
+        <p>写出瞬时安培力，代入牛二。安培力总与相对运动方向相反，v 变则 F<sub>A</sub> 变、a 变——这就是"变加速"的根源。a=0 时得收尾状态。</p>
+        <div class="fm">F − <span class="frac"><span>B²L²v</span><span>R</span></span> = ma</div>
+      </div>
+      <div class="sumcard">
+        <div class="h">② 求电荷量 q（与过程无关）</div>
+        <p>对单杆或某一杆用动量定理，安培力的冲量里的 ∫I dt 就是 q；也可直接用磁通量变化。这是绕过变加速的捷径。</p>
+        <div class="fm">BLq = mΔv　　或　　q = <span class="frac"><span>ΔΦ</span><span>R</span></span></div>
+      </div>
+      <div class="sumcard">
+        <div class="h">③ 求焦耳热 Q（用能量）</div>
+        <p>变加速不能用匀变速公式，一律回到能量守恒：外力做功 = 动能变化 + 焦耳热；损失的机械能全部转化为内能。</p>
+        <div class="fm">Fx = <span class="frac"><span>1</span><span>2</span></span>mv² + Q</div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+"use strict";
+
+/* ==================== 情况数据（内容提炼自视频） ==================== */
+const CASES = [
+  {
+    id:"01", name:"单杆 · 有初速度", color:"#0e7c9c", type:"single-v0", nodes:[0,1,2,3], tools:["v","q"],
+    title:"安培力做阻力，速度按指数衰减直到停下",
+    cond:"磁感应强度 B，导轨间距 L，电阻 R，杆质量 m，初速度 v₀，导轨光滑、电阻不计。",
+    metrics:[["t","s"],["v",""],["I","A"],["F_A","N"],["a","m/s²"],["x","m"]],
+    steps:[
+      ["电动势","<span class='sf'>E = BLv</span> <span class='note'>杆切割磁感线</span>"],
+      ["电流","<span class='sf'>I = <span class='frac'><span>E</span><span>R</span></span> = <span class='frac'><span>BLv</span><span>R</span></span></span>"],
+      ["受力","<span class='sf'>F<sub>A</sub> = BIL = <span class='frac'><span>B²L²v</span><span>R</span></span></span> <span class='note'>左手定则：向左，与运动方向相反</span>","key"],
+      ["运动","<span class='sf'>a = <span class='frac'><span>F<sub>A</sub></span><span>m</span></span> = <span class='frac'><span>B²L²v</span><span>mR</span></span></span> <span class='note'>v↓ → a↓，加速度减小的减速运动</span>","key"],
+      ["初始","<span class='sf'>v = v₀</span> 时最大：<span class='sf'>I₀ = <span class='frac'><span>BLv₀</span><span>R</span></span></span>，<span class='sf'>a₀ = <span class='frac'><span>B²L²v₀</span><span>mR</span></span></span>"],
+      ["动量定理","取向右为正：<span class='sf'>−BĪL·t = 0 − mv₀</span> ⇒ <span class='sf'>q = <span class='frac'><span>mv₀</span><span>BL</span></span></span>","key"],
+      ["位移","<span class='sf'>q = <span class='frac'><span>ΔΦ</span><span>R</span></span> = <span class='frac'><span>BLx</span><span>R</span></span></span> ⇒ <span class='sf'>x = <span class='frac'><span>mv₀R</span><span>B²L²</span></span></span>"]
+    ],
+    conclusion:"安培力是阻力，v 按指数规律衰减到 0；用动量定理求 q，再用 q=ΔΦ/R 求位移 x。",
+    trap:"变加速过程不能用匀变速公式求 x，也不能用动量定理直接算位移——位移要靠 q=BLx/R 间接求。",
+    dur:8, scene:"single",
+    live:s=>`此刻 v=${s.v.toFixed(2)} → I=${s.I.toFixed(2)} → F_A=${s.FA.toFixed(2)} → a=${s.a.toFixed(2)}（a 随 v 同步减小）`
+  },
+  {
+    id:"02-1", name:"单杆恒力 · 接电阻", color:"#d2691e", type:"single-F-R", nodes:[0,1,2,3], tools:["v","Q"],
+    title:"安培力随速度增大，加速度减小，最终匀速（收尾速度）",
+    cond:"恒力 F，磁感应强度 B，导轨间距 L，电阻 R，杆质量 m，从静止开始，导轨光滑。",
+    metrics:[["t","s"],["v",""],["I","A"],["F_A","N"],["a","m/s²"],["Q","J"]],
+    steps:[
+      ["电动势","速度为 v 时 <span class='sf'>E = BLv</span>，<span class='sf'>I = <span class='frac'><span>BLv</span><span>R</span></span></span>"],
+      ["受力","<span class='sf'>F<sub>A</sub> = BIL = <span class='frac'><span>B²L²v</span><span>R</span></span></span>，向左"],
+      ["牛二","<span class='sf'>F − <span class='frac'><span>B²L²v</span><span>R</span></span> = ma</span>","key"],
+      ["开始","<span class='sf'>v=0</span> 时 <span class='sf'>F<sub>A</sub>=0</span>，加速度最大 <span class='sf'>a<sub>m</sub> = <span class='frac'><span>F</span><span>m</span></span></span>"],
+      ["过程","<span class='sf'>v↑ → F<sub>A</sub>↑ → a↓</span>，加速度减小的加速运动","key"],
+      ["收尾","<span class='sf'>a=0</span> 时匀速：<span class='sf'>F = <span class='frac'><span>B²L²v<sub>m</sub></span><span>R</span></span></span>"],
+      ["收尾速度","<span class='sf'>v<sub>m</sub> = <span class='frac'><span>FR</span><span>B²L²</span></span></span>","key"],
+      ["能量","拉力做功 = 动能增加 + 焦耳热：<span class='sf'>Fx = <span class='frac'><span>1</span><span>2</span></span>mv² + Q</span>"]
+    ],
+    conclusion:"加速度从 F/m 逐渐减小到 0，速度趋于收尾速度 v_m = FR/(B²L²)。",
+    trap:"变加速不能用匀变速公式求 x；求 Q 必须回到能量守恒 Q = Fx − ½mv²。",
+    dur:9, scene:"singleF",
+    live:s=>`此刻 v=${s.v.toFixed(2)} → F_A=${s.FA.toFixed(2)} → a=${s.a.toFixed(2)} → 收尾 v_m=${s.vm.toFixed(2)}`
+  },
+  {
+    id:"02-2", name:"单杆恒力 · 接电容", color:"#8e5bb5", type:"single-F-C", nodes:[0,2,3], tools:["v"],
+    title:"电流与加速度成正比且恒定，杆做匀加速直线运动",
+    cond:"恒力 F，电容 C，磁感应强度 B，导轨间距 L，杆质量 m，从静止开始，导轨光滑、不计电阻。",
+    metrics:[["t","s"],["v",""],["I","A"],["F_A","N"],["a","m/s²"],["Q<sub>C</sub>","C"]],
+    steps:[
+      ["电压","不计电阻，电容器电压等于电动势：<span class='sf'>U = E = BLv</span>"],
+      ["电荷","<span class='sf'>Q = CU = CBLv</span>"],
+      ["电流","<span class='sf'>I = <span class='frac'><span>ΔQ</span><span>Δt</span></span> = CBL<span class='frac'><span>Δv</span><span>Δt</span></span> = CBLa</span>","key"],
+      ["受力","<span class='sf'>F<sub>A</sub> = BIL = CB²L²a</span> <span class='note'>因 a 恒定，安培力也恒定</span>"],
+      ["牛二","<span class='sf'>F − CB²L²a = ma</span> ⇒ <span class='sf'>a = <span class='frac'><span>F</span><span>m + CB²L²</span></span></span> <span class='note'>恒定！</span>","key"],
+      ["结论","<span class='sf'>v = at</span> 匀加速，<span class='sf'>I = CBLa</span> 恒定"]
+    ],
+    conclusion:"接电容时电流 I=CBLa 恒定、安培力恒定，杆做匀加速直线运动——与接电阻的收尾匀速本质不同。",
+    trap:"电容电路「稳定后」电流不为 0（因为 a 恒定、v 持续增大）；不要套用接电阻的收尾速度结论。",
+    dur:6, scene:"singleC",
+    live:s=>`此刻 a=${s.a.toFixed(2)} 恒定 → I=CBLa=${s.I.toFixed(2)} 恒定 → v=at=${s.v.toFixed(2)}`
+  },
+  {
+    id:"03-1", name:"双杆 · 一杆有初速", color:"#5a5fbf", type:"double-v0", nodes:[0,1,2,3], tools:["v","q","Q"],
+    title:"系统动量守恒，两杆最终共速 v₀/2，损失的动能变为焦耳热",
+    cond:"两杆质量均为 m，回路总电阻 R，磁感应强度 B，间距 L，杆 1 初速度 v₀、杆 2 静止，导轨光滑。",
+    metrics:[["t","s"],["v₁",""],["v₂",""],["Δv",""],["I","A"],["Q","J"]],
+    steps:[
+      ["电流","<span class='sf'>E = BL(v₁−v₂)</span>，<span class='sf'>I = <span class='frac'><span>BL(v₁−v₂)</span><span>R</span></span> = <span class='frac'><span>BLΔv</span><span>R</span></span></span>"],
+      ["受力","两杆电流相同，安培力 BIL 等大反向：杆 1 减速、杆 2 加速","key"],
+      ["过程","速度差减小 → 电流减小 → 加速度都减小，直到共速"],
+      ["动量","两杆系统合外力为 0，动量守恒：<span class='sf'>mv₀ = 2mv</span>"],
+      ["共速","<span class='sf'>v = <span class='frac'><span>v₀</span><span>2</span></span></span>","key"],
+      ["生热","<span class='sf'>Q = <span class='frac'><span>1</span><span>2</span></span>mv₀² − <span class='frac'><span>1</span><span>2</span></span>·2mv² = <span class='frac'><span>1</span><span>4</span></span>mv₀²</span>"],
+      ["电荷量","对杆 2 用动量定理：<span class='sf'>BĪL·t = mv−0</span> ⇒ <span class='sf'>q = <span class='frac'><span>mv₀</span><span>2BL</span></span></span>"],
+      ["间距","<span class='sf'>Δx = <span class='frac'><span>qR</span><span>BL</span></span> = <span class='frac'><span>mv₀R</span><span>2B²L²</span></span></span>"]
+    ],
+    conclusion:"系统动量守恒，两杆最终共速 v₀/2；损失的动能全部转化为焦耳热 ¼mv₀²。",
+    trap:"共速后回路磁通量不变、电流为 0，两杆一起匀速；求间距靠 q=BLΔx/R，而不是运动学公式。",
+    dur:7, scene:"doubleV0",
+    live:s=>`此刻 v₁=${s.v1.toFixed(2)}、v₂=${s.v2.toFixed(2)}，Δv=${s.dv.toFixed(2)} → 共速 ${(s.v0/2).toFixed(2)}`
+  },
+  {
+    id:"03-2", name:"双杆恒力 · 拉一杆", color:"#7a4fb0", type:"double-F", nodes:[0,1,2,3], tools:["v","q"],
+    title:"最终两杆加速度相同（并非共速），速度差与电流都保持恒定",
+    cond:"恒力 F 拉杆 2，两杆质量均为 m，回路总电阻 R，磁感应强度 B，间距 L，从静止开始，导轨光滑。",
+    metrics:[["t","s"],["v₁",""],["v₂",""],["Δv",""],["I","A"],["a","m/s²"]],
+    steps:[
+      ["电流","<span class='sf'>I = <span class='frac'><span>BL(v₂−v₁)</span><span>R</span></span> = <span class='frac'><span>BLΔv</span><span>R</span></span></span>"],
+      ["过程","开始 <span class='sf'>a₂ &gt; a₁</span>，Δv↑ → I↑ → a₂↓、a₁↑","key"],
+      ["稳定","当 <span class='sf'>a₁ = a₂</span> 时，Δv 不再变化，I 恒定"],
+      ["整体","两杆整体：<span class='sf'>F = 2ma</span> ⇒ <span class='sf'>a₁ = a₂ = <span class='frac'><span>F</span><span>2m</span></span></span>","key"],
+      ["电流","对杆 1：<span class='sf'>BIL = m·<span class='frac'><span>F</span><span>2m</span></span></span> ⇒ <span class='sf'>I = <span class='frac'><span>F</span><span>2BL</span></span></span>"],
+      ["速度差","<span class='sf'><span class='frac'><span>BLΔv</span><span>R</span></span> = <span class='frac'><span>F</span><span>2BL</span></span></span> ⇒ <span class='sf'>Δv = <span class='frac'><span>FR</span><span>2B²L²</span></span></span>","key"]
+    ],
+    conclusion:"稳定状态是「两杆加速度相同」，速度差、电流都恒定；两杆一起越跑越快，但间距保持不变。",
+    trap:"最终不是共速！常见错误是套「共速、电流为零」——这里是同加速度、恒定电流。",
+    dur:7, scene:"doubleF",
+    live:s=>`此刻 a₁=${s.a1.toFixed(2)}、a₂=${s.a2.toFixed(2)} 趋于相同；Δv=${s.dv.toFixed(2)} → 稳定 ${s.dvInf.toFixed(2)}`
+  },
+  {
+    id:"04", name:"线框穿过磁场", color:"#c0396b", type:"loop", nodes:[0,1,2,3], tools:["v","q","Q"],
+    title:"进入与离开各减速一次，速度减少量相等，但生热不等",
+    cond:"正方形线框边长 L、电阻 R、质量 m，以 v₀ 穿过宽 d（d>L）、磁感应强度 B 的磁场，光滑水平面。",
+    metrics:[["阶段",""],["v",""],["I","A"],["F_A","N"],["Q₁","J"],["Q₂","J"]],
+    steps:[
+      ["进入","只有右边切割：<span class='sf'>E = BLv</span>，<span class='sf'>I = <span class='frac'><span>BLv</span><span>R</span></span></span>，安培力向左，减速","key"],
+      ["动量定理","<span class='sf'>−BĪL·t = mΔv</span>，即 <span class='sf'>−BLq = mΔv</span>"],
+      ["完全进入","磁通量不变，没有电流，匀速：<span class='sf'>v₁ = v₀ − <span class='frac'><span>B²L³</span><span>mR</span></span></span>"],
+      ["离开","只有左边切割，q 同样为 <span class='sf'><span class='frac'><span>BL²</span><span>R</span></span></span>：<span class='sf'>v₂ = v₀ − <span class='frac'><span>2B²L³</span><span>mR</span></span></span>"],
+      ["结论","<span class='sf'>v₀−v₁ = v₁−v₂</span>，所以 <span class='sf'>v₁ = <span class='frac'><span>v₀+v₂</span><span>2</span></span></span>","key"],
+      ["生热","能量守恒：<span class='sf'>Q = <span class='frac'><span>1</span><span>2</span></span>mv₀² − <span class='frac'><span>1</span><span>2</span></span>mv₂²</span>"],
+      ["分配","进入 <span class='sf'>Q₁=<span class='frac'><span>1</span><span>2</span></span>m(v₀²−v₁²)</span>，离开 <span class='sf'>Q₂=<span class='frac'><span>1</span><span>2</span></span>m(v₁²−v₂²)</span>，<span class='sf'>Q₁&gt;Q₂</span>","key"]
+    ],
+    conclusion:"进入、离开各减速一次且速度减少量相等，中间匀速；因进入时速度更大，生热 Q₁>Q₂。",
+    trap:"进入与离开速度减少量相同，但用时不同、生热不同——速度大时电流大、安培力冲量相同但焦耳热更多。",
+    dur:9, scene:"loop",
+    live:s=>`阶段：${s.phase}　|　v₀=10 → v₁=7 → v₂=4，每段减少 3，且 v₁=(v₀+v₂)/2`
+  }
+];
+
+/* ==================== 物理模拟（数值自洽，m=1, BL=1, R=τ） ==================== */
+const CV = {}; // canvas 引用
+let cur = 0, playing = true, speed = 1, elapsed = 0, hist = [], sim = {}, lastTs = 0, raf = 0;
+const SCENE_W = 780, SCENE_H = 300, GRAPH_W = 310, GRAPH_H = 150;
+
+function newSim(type){
+  switch(type){
+    case "single-v0":  return {t:0, tau:1.6, v0:10, x:0};
+    case "single-F-R": return {t:0, tau:1.6, a0:6, vm:9.6, x:0, Q:0};
+    case "single-F-C": return {t:0, a:4, CBL:0.5};
+    case "double-v0":  return {t:0, tau:0.8, v0:10, gap0:220};
+    case "double-F":   return {t:0, tau:0.8, aFin:3, dvInf:4.8, R:1.6};
+    case "loop":       return {t:0, lx:230, v0:10, v1:7, v2:4, c:3/70, magL:300, magR:500, box:70, Q1:25.5, Q2:16.5};
+  }
+}
+
+/* 根据当前物理时间/状态，返回要显示的量 */
+function compute(s){
+  const c = CASES[cur];
+  switch(c.type){
+    case "single-v0":{
+      const v = s.v0*Math.exp(-s.t/s.tau);
+      const x = s.v0*s.tau*(1-Math.exp(-s.t/s.tau));
+      const I = v/s.tau, FA = I, a = -v/s.tau, q = x/s.tau;
+      return {v,I,FA,a,x,q,pos:x, done:v<0.15};
+    }
+    case "single-F-R":{
+      const v = s.vm*(1-Math.exp(-s.t/s.tau));
+      const a = s.a0*Math.exp(-s.t/s.tau);
+      const x = s.vm*(s.t - s.tau*(1-Math.exp(-s.t/s.tau)));
+      const I = v/s.tau, FA = I;
+      const Q = s.a0*x - 0.5*v*v; // F=m*a0
+      return {v,I,FA,a,x,Q,vm:s.vm,pos:x, done:false};
+    }
+    case "single-F-C":{
+      const v = s.a*s.t, I = s.CBL*s.a, FA = I, a = s.a;
+      const QC = s.CBL*v;
+      return {v,I,FA,a,QC,pos:0.5*s.a*s.t*s.t, done:false};
+    }
+    case "double-v0":{
+      const dv = s.v0*Math.exp(-s.t/s.tau);
+      const v1 = s.v0/2 + dv/2, v2 = s.v0/2 - dv/2;
+      const I = dv/1.6;
+      const dx = s.v0*s.tau*(1-Math.exp(-s.t/s.tau)); // 相对靠近的位移
+      const Q = 0.25*1*s.v0*s.v0*(1-Math.exp(-2*s.t/s.tau));
+      return {v1,v2,dv,I,Q,gap:s.gap0 - dx*6, v0:s.v0, done:dv<0.12};
+    }
+    case "double-F":{
+      const a1 = s.aFin*(1-Math.exp(-s.t/s.tau));
+      const a2 = s.aFin*(1+Math.exp(-s.t/s.tau));
+      const dv = s.dvInf*(1-Math.exp(-s.t/s.tau));
+      const I = dv/s.R;
+      const vcm = s.aFin*s.t;
+      const v1 = vcm - dv/2, v2 = vcm + dv/2;
+      const gap = 220 + 0.5*s.dvInf*(s.t - s.tau*(1-Math.exp(-s.t/s.tau)))*3.2;
+      return {v1,v2,dv,I,a1,a2,dvInf:s.dvInf,gap, done:false};
+    }
+    case "loop":{
+      const {lx,v0,v1,v2,c,magL,magR,box}=s;
+      let v,I,FA,phase,Q1,Q2=0;
+      if(lx+box<=magL){ v=v0;I=0;FA=0;phase="进入前";Q1=0; }
+      else if(lx<magL){ v=v0-c*(lx+box-magL); I=v/1.6; FA=I; phase="进入（右边切割）"; Q1=0.5*(v0*v0-v*v); }
+      else if(lx+box<=magR){ v=v1;I=0;FA=0;phase="完全进入（匀速）";Q1=25.5; }
+      else if(lx<magR){ v=v1-c*(lx+box-magR); I=v/1.6; FA=I; phase="离开（左边切割）"; Q1=25.5; Q2=0.5*(v1*v1-v*v); }
+      else { v=v2;I=0;FA=0;phase="完全离开";Q1=25.5;Q2=16.5; }
+      return {v,I,FA,phase,Q1,Q2,lx, done:lx>magR+20};
+    }
+  }
+}
+
+/* ==================== 绘制：场景 ==================== */
+function setup(cv,w,h){
+  const dpr = window.devicePixelRatio||1;
+  cv.width=w*dpr; cv.height=h*dpr; cv.style.width="100%"; cv.style.aspectRatio=w+"/"+h;
+  const ctx=cv.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0); return ctx;
+}
+function arrow(ctx,x1,y1,x2,y2,color,label,ls){
+  ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=3; ctx.lineCap="round";
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  const ang=Math.atan2(y2-y1,x2-x1), h=11;
+  ctx.beginPath(); ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-h*Math.cos(ang-.45), y2-h*Math.sin(ang-.45));
+  ctx.lineTo(x2-h*Math.cos(ang+.45), y2-h*Math.sin(ang+.45));
+  ctx.closePath(); ctx.fill();
+  if(label){ ctx.font="bold 15px "+getComputedStyle(document.body).fontFamily; ctx.fillText(label, x2+ (x2>x1?-4:4) - (x2>x1?ctx.measureText(label).width:0), y2-8); }
+}
+function field(ctx,x,y,w,h){
+  ctx.fillStyle="rgba(234,243,251,.9)"; ctx.fillRect(x,y,w,h);
+  ctx.strokeStyle=getCss('--fieldx'); ctx.lineWidth=2;
+  for(let i=x+16;i<x+w;i+=26) for(let j=y+16;j<y+h;j+=26){
+    ctx.beginPath();ctx.moveTo(i-4,j-4);ctx.lineTo(i+4,j+4);ctx.moveTo(i+4,j-4);ctx.lineTo(i-4,j+4);ctx.stroke();
+  }
+  ctx.font="13px "+getComputedStyle(document.body).fontFamily; ctx.fillStyle="#6d8cab"; ctx.fillText("B 垂直纸面向里 (×)",x+6,y+h+18);
+}
+function rails(ctx,x1,x2,y1,y2){
+  ctx.strokeStyle="#7d8b9e"; ctx.lineWidth=5; ctx.lineCap="round";
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y1);ctx.moveTo(x1,y2);ctx.lineTo(x2,y2);ctx.stroke();
+}
+function resistor(ctx,x,y1,y2){
+  ctx.strokeStyle="#5a6b80";ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(x,y1);ctx.lineTo(x,(y1+y2)/2-22);ctx.stroke();
+  ctx.fillStyle="#fff";ctx.strokeStyle="#5a6b80";ctx.lineWidth=2;ctx.fillRect(x-8,(y1+y2)/2-22,16,44);ctx.strokeRect(x-8,(y1+y2)/2-22,16,44);
+  ctx.beginPath();ctx.moveTo(x,(y1+y2)/2+22);ctx.lineTo(x,y2);ctx.stroke();
+  ctx.font="13px "+getComputedStyle(document.body).fontFamily;ctx.fillStyle="#5a6b80";ctx.fillText("R",x-6,(y1+y2)/2+6);
+}
+function capacitor(ctx,x,y1,y2){
+  ctx.strokeStyle="#5a6b80";ctx.lineWidth=3;
+  const ym=(y1+y2)/2;
+  ctx.beginPath();ctx.moveTo(x,y1);ctx.lineTo(x,ym-10);ctx.moveTo(x,ym+10);ctx.lineTo(x,y2);ctx.stroke();
+  ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x-14,ym-10);ctx.lineTo(x+14,ym-10);ctx.moveTo(x-14,ym+10);ctx.lineTo(x+14,ym+10);ctx.stroke();
+  ctx.fillStyle="#5a6b80";ctx.font="13px "+getComputedStyle(document.body).fontFamily;ctx.fillText("C",x-5,ym+32);
+}
+function rod(ctx,x,y1,y2){
+  const g=ctx.createLinearGradient(x-7,0,x+7,0); g.addColorStop(0,"#c8813f");g.addColorStop(.5,"#efd9b6");g.addColorStop(1,"#c8813f");
+  ctx.fillStyle=g; ctx.fillRect(x-6,y1-6,12,y2-y1+12);
+  ctx.strokeStyle="#a9672c";ctx.lineWidth=1;ctx.strokeRect(x-6,y1-6,12,y2-y1+12);
+}
+function getCss(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+
+function drawScene(){
+  const c=CASES[cur], ctx=CV.scene; if(!ctx) return;
+  ctx.clearRect(0,0,SCENE_W,SCENE_H);
+  const y1=95,y2=225;
+  const st=compute(sim);
+
+  if(c.scene==="single"||c.scene==="singleF"||c.scene==="singleC"){
+    field(ctx,150,y1,470,y2-y1);
+    rails(ctx,90,700,y1,y2);
+    if(c.scene==="singleC") capacitor(ctx,90,y1,y2); else resistor(ctx,90,y1,y2);
+    const x0=200, span=380;
+    let px = x0 + Math.min(1, st.pos/(c.type==="single-v0"?16:(c.type==="single-F-R"?43:18)))*span;
+    rod(ctx,px,y1,y2);
+    // 速度箭头（向右，橙）
+    arrow(ctx,px+14,y2-18,px+14+Math.max(28,st.v*4),y2-18,getCss('--v'),"v");
+    // 安培力箭头（向左，红）
+    const faLen=Math.max(24,st.FA*4.5);
+    arrow(ctx,px-14,y1+22,px-14-faLen,y1+22,getCss('--fa'),"F_A");
+    // 恒力（向右，品红，仅恒力情况）
+    if(c.scene==="singleF"||c.scene==="singleC") arrow(ctx,px+14,y1-2,px+90,y1-2,getCss('--f'),"F");
+    // 电流方向（沿上导轨的紫色小箭头）
+    ctx.fillStyle=getCss('--cur');ctx.font="bold 14px "+getComputedStyle(document.body).fontFamily;
+    ctx.fillText("I →", 120, y1-12);
+  }
+  else if(c.scene==="doubleV0"||c.scene==="doubleF"){
+    field(ctx,110,y1,540,y2-y1);
+    rails(ctx,80,700,y1,y2);
+    const gap=st.gap, cx=380;
+    const x1=cx-gap/2, x2=cx+gap/2;
+    rod(ctx,x1,y1,y2); rod(ctx,x2,y1,y2);
+    ctx.fillStyle="#8a5a22";ctx.font="13px "+getComputedStyle(document.body).fontFamily;
+    ctx.fillText("1",x1-3,y2+22);ctx.fillText("2",x2-3,y2+22);
+    if(c.scene==="doubleV0"){
+      arrow(ctx,x1+14,y2-16,x1+14+Math.max(24,st.v1*4),y2-16,getCss('--v'),"v₁");
+      arrow(ctx,x2+14,y2-16,x2+14+Math.max(24,st.v2*4),y2-16,getCss('--v'),"v₂");
+      arrow(ctx,x1-14,y1+20,x1-14-Math.max(18,st.I*4),y1+20,getCss('--fa'),"F_A");
+      arrow(ctx,x2+14,y1+20,x2+14+Math.max(18,st.I*4),y1+20,getCss('--fa'),"F_A");
+    } else {
+      arrow(ctx,x2+14,y1-2,x2+100,y1-2,getCss('--f'),"F");
+      arrow(ctx,x1+14,y1+20,x1+14+Math.max(18,st.I*4),y1+20,getCss('--fa'),"F_A");
+      arrow(ctx,x2-14,y2-16,x2-14-Math.max(18,st.I*4),y2-16,getCss('--fa'),"F_A");
+      ctx.fillStyle=getCss('--v');ctx.font="bold 14px "+getComputedStyle(document.body).fontFamily;
+      ctx.fillText("v₂>v₁，速度差恒定",cx-70,y2+44);
+    }
+  }
+  else if(c.scene==="loop"){
+    const {magL,magR,box}=sim, lx=st.lx, by1=105, by2=105+box;
+    field(ctx,magL,70,magR-magL,190);
+    // 线框
+    ctx.strokeStyle="#c8813f";ctx.lineWidth=7;ctx.strokeRect(lx,by1,box,by2-by1);
+    ctx.fillStyle="#a9672c";ctx.font="13px "+getComputedStyle(document.body).fontFamily;ctx.fillText("L",lx+box/2-4,by1-10);
+    arrow(ctx,lx+box/2+30,by1+box/2,lx+box/2+30+Math.max(22,st.v*4),by1+box/2,getCss('--v'),"v");
+    if(st.FA>0.05) arrow(ctx,lx-8,by1-14,lx-8-Math.max(18,st.FA*4),by1-14,getCss('--fa'),"F_A");
+    ctx.fillStyle="#1b2a3d";ctx.font="bold 15px "+getComputedStyle(document.body).fontFamily;ctx.fillText(st.phase, 20, 40);
+  }
+}
+
+/* ==================== 绘制：v-t 图 ==================== */
+function drawGraph(){
+  const ctx=CV.graph; if(!ctx) return;
+  ctx.clearRect(0,0,GRAPH_W,GRAPH_H);
+  const L=34,R=8,T=12,B=24, w=GRAPH_W-L-R, h=GRAPH_H-T-B;
+  ctx.strokeStyle="#c7d2e0";ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(L,T);ctx.lineTo(L,T+h);ctx.lineTo(L+w,T+h);ctx.stroke();
+  ctx.fillStyle="#8a97a8";ctx.font="11px sans-serif";
+  ctx.fillText("v",L-14,T+8);ctx.fillText("t",L+w-4,T+h+18);ctx.fillText("0",L-10,T+h+12);
+  const vmax=12, tmax=CASES[cur].dur;
+  // 网格
+  ctx.strokeStyle="#eef2f7";
+  for(let i=1;i<=3;i++){const y=T+h-i*h*3/4;ctx.beginPath();ctx.moveTo(L,y);ctx.lineTo(L+w,y);ctx.stroke();}
+  if(hist.length<2) return;
+  const two = CASES[cur].scene==="doubleV0"||CASES[cur].scene==="doubleF";
+  const drawLine=(key,color)=>{
+    ctx.strokeStyle=color;ctx.lineWidth=2.2;ctx.beginPath();
+    hist.forEach((p,i)=>{
+      const x=L+p.t/tmax*w, y=T+h-Math.min(1,p[key]/vmax)*h;
+      i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+    });ctx.stroke();
+  };
+  if(two){ drawLine("v1",getCss('--v')); drawLine("v2",getCss('--fa')); }
+  else drawLine("v",getCss('--blue2'));
+}
+
+/* ==================== 渲染 DOM ==================== */
+function renderNav(){
+  const nav=document.getElementById("nav");
+  nav.innerHTML='<div class="cap">六种情况 · 点选查看动画</div>'+CASES.map((c,i)=>
+    `<div class="tab ${i===cur?'active':''}" data-i="${i}" style="${i===cur?'background:'+c.color:''}">
+       <span class="no">${c.id}</span><span class="nm">${c.name}</span></div>`).join("");
+  nav.querySelectorAll('.tab').forEach(t=>t.onclick=()=>select(+t.dataset.i));
+}
+function metricVals(st){
+  const c=CASES[cur];
+  switch(c.type){
+    case "single-v0": return [elapsed.toFixed(1),st.v.toFixed(2),st.I.toFixed(2),st.FA.toFixed(2),st.a.toFixed(2),st.x.toFixed(2)];
+    case "single-F-R": return [elapsed.toFixed(1),st.v.toFixed(2),st.I.toFixed(2),st.FA.toFixed(2),st.a.toFixed(2),st.Q.toFixed(1)];
+    case "single-F-C": return [elapsed.toFixed(1),st.v.toFixed(2),st.I.toFixed(2),st.FA.toFixed(2),st.a.toFixed(2),st.QC.toFixed(2)];
+    case "double-v0": return [elapsed.toFixed(1),st.v1.toFixed(2),st.v2.toFixed(2),st.dv.toFixed(2),st.I.toFixed(2),st.Q.toFixed(1)];
+    case "double-F": return [elapsed.toFixed(1),st.v1.toFixed(2),st.v2.toFixed(2),st.dv.toFixed(2),st.I.toFixed(2),st.a1.toFixed(2)];
+    case "loop": return [st.phase,st.v.toFixed(2),st.I.toFixed(2),st.FA.toFixed(2),st.Q1.toFixed(1),st.Q2.toFixed(1)];
+  }
+}
+function renderContent(){
+  const c=CASES[cur];
+  document.getElementById("content").innerHTML=`
+    <div class="ctitle"><span class="badge" style="background:${c.color}">${c.id}</span>${c.title}</div>
+    <div class="cond"><b>条件：</b>${c.cond}</div>
+    <div class="stage">
+      <div>
+        <div class="scene"><canvas id="sc"></canvas></div>
+        <div class="ctrl">
+          <button class="btn primary" id="playBtn">⏸ 暂停</button>
+          <button class="btn" id="resetBtn">↻ 重播</button>
+          <button class="btn" id="speedBtn">速度 ×1</button>
+          <span class="sp">动画按真实物理规律驱动 · 拖动逻辑见下方公式</span>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="metrics"><h3>实时物理量</h3><div class="mgrid" id="mgrid"></div></div>
+        <div class="graph"><h3>v – t 图像</h3><canvas id="gr"></canvas>
+          <div class="legend" id="legend"></div>
+        </div>
+      </div>
+    </div>
+    <div class="live" id="live"></div>
+    <div class="derive"><h3>分步推导（逐步代入，先链条后工具）</h3>
+      ${c.steps.map(s=>`<div class="step ${s[2]||''}"><div class="tag">${s[0]}</div><div class="txt">${s[1]}</div></div>`).join("")}
+    </div>
+    <div class="boxes">
+      <div class="box ok"><h4>✓ 结论</h4><p>${c.conclusion}</p></div>
+      <div class="box warn"><h4>⚠ 易错点</h4><p>${c.trap}</p></div>
+    </div>`;
+  CV.scene=setup(document.getElementById("sc"),SCENE_W,SCENE_H);
+  CV.graph=setup(document.getElementById("gr"),GRAPH_W,GRAPH_H);
+  // 指标骨架
+  document.getElementById("mgrid").innerHTML=c.metrics.map((m,i)=>
+    `<div class="m"><div class="l">${m[0]}${m[1]?' ('+m[1]+')':''}</div><div class="val" id="mv${i}">—</div></div>`).join("");
+  const two=c.scene==="doubleV0"||c.scene==="doubleF";
+  document.getElementById("legend").innerHTML = two
+    ? `<span><i style="background:var(--v)"></i>v₁</span><span><i style="background:var(--fa)"></i>v₂</span>`
+    : `<span><i style="background:var(--blue2)"></i>v</span>`;
+  document.getElementById("playBtn").onclick=togglePlay;
+  document.getElementById("resetBtn").onclick=reset;
+  document.getElementById("speedBtn").onclick=cycleSpeed;
+  // 模型条高亮
+  document.querySelectorAll('.node').forEach(n=>n.classList.toggle('on', c.nodes.includes(+n.dataset.node)));
+  document.querySelectorAll('.tool').forEach(t=>t.classList.toggle('on', c.tools.includes(t.dataset.tool)));
+  updateDOM();
+}
+function updateDOM(){
+  const st=compute(sim), c=CASES[cur];
+  const vals=metricVals(st);
+  vals.forEach((v,i)=>{const e=document.getElementById("mv"+i); if(e) e.textContent=v;});
+  const lv=document.getElementById("live"); if(lv) lv.innerHTML=c.live(st);
+  document.querySelector('.graph h3') && drawGraph();
+}
+function togglePlay(){
+  playing=!playing;
+  const b=document.getElementById("playBtn"); if(b) b.textContent=playing?"⏸ 暂停":"▶ 播放";
+  if(playing) lastTs=performance.now();
+}
+function cycleSpeed(){
+  speed = speed===1?1.5:speed===1.5?0.5:1;
+  const b=document.getElementById("speedBtn"); if(b) b.textContent="速度 ×"+speed;
+}
+function reset(){ elapsed=0; hist=[]; sim=newSim(CASES[cur].type); playing=true;
+  const b=document.getElementById("playBtn"); if(b) b.textContent="⏸ 暂停"; lastTs=performance.now(); }
+
+function select(i){
+  cur=i; elapsed=0; hist=[]; sim=newSim(CASES[cur].type); playing=true; lastTs=performance.now();
+  renderNav(); renderContent();
+}
+function loop(ts){
+  if(playing){
+    let dt=(ts-lastTs)/1000; if(dt>0.1)dt=0.1; lastTs=ts;
+    const dd=dt*speed; elapsed+=dd;
+    // 推进物理时间
+    const c=CASES[cur];
+    if(c.type==="loop"){
+      // 位置积分：lx 随 v 变化（速度大时走得快）
+      const st=compute(sim);
+      sim.lx += st.v * dd * 8;
+      sim.t=elapsed;
+    } else sim.t=elapsed;
+    const st=compute(sim);
+    hist.push({t:Math.min(elapsed,c.dur),v:st.v!==undefined?st.v:(st.v1||0),v1:st.v1||0,v2:st.v2||0});
+    if(hist.length>600) hist.shift();
+    updateDOM();
+    // 自动停
+    if(st.done && c.type!=="loop"){ playing=false; const b=document.getElementById("playBtn"); if(b)b.textContent="▶ 播放(已结束)"; }
+    if(c.type==="loop" && sim.lx>sim.magR+20){ playing=false; const b=document.getElementById("playBtn"); if(b)b.textContent="▶ 播放(已结束)"; }
+  } else lastTs=ts;
+  drawScene(); drawGraph();
+  raf=requestAnimationFrame(loop);
+}
+
+select(0);
+raf=requestAnimationFrame(loop);
+</script>
+</body>
+</html>
